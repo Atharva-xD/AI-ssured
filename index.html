@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>AI-SSURED</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="https://i.pinimg.com/originals/a1/4d/cf/a14dcf617c862170e1808db56ea12dc3.png"
+        type="image/x.icon">
+    <script src="https://cdn.lordicon.com/lordicon-1.1.0.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+
+<body>
+    <nav>
+        <h1 class="logo"> <span class="upload">AI</span>-ssured</h1>
+        <!-- <img src="/Ai-ssured.jpg" alt="Example Image" width="50" height="50"> -->
+        <ul>
+            <li><a href="#container" class="nav-link nav-link-features">Home</a></li>
+            <li><a href="#drag-drop" class="nav-link nav-link-drag-drop">Drag & Drop</a></li>
+            <li><a href="#footer" class="nav-link nav-link-contact">Contact</a></li>
+        </ul>
+    </nav>
+    <div class="container" id="container">
+        <main>
+            <section class="hero">
+
+                <h1> <span class="upload">AI</span>-ssured</h1>
+                <p>Bringing Art to <strong style="color: #ff5500;">A I - </strong>nnovation,</p>
+                <p>Where Creativity Meets Assurance </p>
+                <button class="attractive-button"><a href="#features" class="cta-button">Learn More</a></button>
+
+            </section>
+
+            <!-- ... (other HTML sections) -->
+            <section id="drag-drop" class="drag-drop">
+                <div class="drag-drop">
+                    <div id="file-drop-area">
+                        <lord-icon src="https://cdn.lordicon.com/smwmetfi.json" trigger="loop"
+                            colors="primary:#ffffff,secondary:#ffffff">
+                        </lord-icon>
+                        <h1>Drag and Drop</h1>
+                        <p>or <span class="upload">upload</span> your image
+                            <input type="file" id="file-input" style="display: none;">
+                        </p>
+                        <p>We support jpg, jpeg, png, webp, bmp. 10Mb of maximum size.</p>
+                    </div>
+
+                    <div id="separator" class="separator">
+                        <div class="horizontal-line"></div>
+                        <div class="or">or</div>
+                        <div class="horizontal-line"></div>
+                    </div>
+                    <div id="image-upload">
+                        <input type="text" id="image-url" placeholder="Enter Image URL">
+                    </div>
+                    <div id="result-container">
+                        <p id="image-result-text" style="color: #ff5500; font-size: 1.5em;"></p>
+                    </div>
+                </div>
+                <!-- Include TensorFlow.js library -->
+                <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+                <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', async () => {
+                        const fileDropArea = document.getElementById('file-drop-area');
+                        const fileInput = document.getElementById('file-input');
+                        const imageUrlInput = document.getElementById('image-url');
+                        const resultText = document.getElementById('image-result-text');
+
+                        fileDropArea.addEventListener('click', () => fileInput.click());
+                        fileDropArea.addEventListener('dragover', (e) => handleDragOver(e));
+                        fileDropArea.addEventListener('drop', (e) => handleDrop(e));
+                        fileInput.addEventListener('change', handleImageUpload);
+                        imageUrlInput.addEventListener('input', handleImageURL);
+
+                        function handleDragOver(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            fileDropArea.classList.add('drag-over');
+                        }
+
+                        async function handleImageUpload() {
+                            try {
+                                const file = fileInput.files[0];
+
+                                if (file) {
+                                    const imageUrl = URL.createObjectURL(file);
+
+                                    // Update the content of the hero section with the uploaded image
+                                    const heroSection = document.querySelector('.hero');
+                                    heroSection.innerHTML = `<img src="${imageUrl}" alt="Uploaded Image" style="object-fit: cover; width: 80%; height: 80%;">`;
+
+                                    // Clear the result text
+                                    resultText.innerHTML = '';
+
+                                    // Predict the image and update the result
+                                    await uploadImage(imageUrl);
+                                }
+                            } catch (error) {
+                                console.error('Error handling image upload:', error);
+                            }
+                        }
+
+                        async function handleImageURL() {
+                            try {
+                                const imageUrl = imageUrlInput.value.trim();
+
+                                if (imageUrl) {
+                                    const heroSection = document.querySelector('.hero');
+                                    heroSection.innerHTML = `<img src="${imageUrl}" alt="Uploaded Image" style="object-fit: cover; width: 80%; height: 80%;">`;
+
+                                    resultText.innerHTML = '';
+                                    await predictImage(imageUrl);
+                                }
+                            } catch (error) {
+                                console.error('Error handling image URL input:', error);
+                            }
+                        }
+
+                        const apiKeys = [
+                            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Im1lbV9jbHRyY2dvdzYwMXFtMHNubTV4Y3Nna3Q4IiwidXNlcl9pZCI6Im1lbV9jbHRyY2dvdzYwMXFtMHNubTV4Y3Nna3Q4IiwiYXVkIjoiYWNjZXNzIiwiZXhwIjowLjB9.Z1PqCoae9ML_BfZkkj1dQ2JAxBnL6hWVknjatmtMGmo",
+                            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjFjN2ZmODE1LTU3ZDgtNDVkYi1iZDRmLTZiMmQ5OTJmZWRjZiIsInVzZXJfaWQiOiIxYzdmZjgxNS01N2Q4LTQ1ZGItYmQ0Zi02YjJkOTkyZmVkY2YiLCJhdWQiOiJhY2Nlc3MiLCJleHAiOjAuMH0.qat0e7HsYpPgtl7pvQlyRP_NbjeRPklt1WptZ_1kVY0",
+                            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExNDRhZjRlLTM3YzItNDM3ZC04N2RiLTVlYzJhZDEzYmY4MCIsInVzZXJfaWQiOiIxMTQ0YWY0ZS0zN2MyLTQzN2QtODdkYi01ZWMyYWQxM2JmODAiLCJhdWQiOiJhY2Nlc3MiLCJleHAiOjAuMH0.xQ5j-VcdKA2UCrYVZ2iiOycE79ip0qh9eCXdF9DBV-8",
+                            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNlNGYwNmM3LWJmY2YtNDU3Mi1iNTgyLTk5YjI3Mzc4NTY0ZiIsInVzZXJfaWQiOiIzZTRmMDZjNy1iZmNmLTQ1NzItYjU4Mi05OWIyNzM3ODU2NGYiLCJhdWQiOiJhY2Nlc3MiLCJleHAiOjAuMH0.2hRZWwvyfVy8JqxpPX-lr8M5HMe2vixeWO_D_jH4e-0",
+                            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijg3YzZmNjY0LTg5YmEtNDYyNi1iMzU0LTkwZjk3MzQzMzFiYiIsInVzZXJfaWQiOiI4N2M2ZjY2NC04OWJhLTQ2MjYtYjM1NC05MGY5NzM0MzMxYmIiLCJhdWQiOiJhY2Nlc3MiLCJleHAiOjAuMH0.7LQY8AnithVs6hcL3W7zkWQ-D9oPXxgmcTml61aLRK4",
+                            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Im1lbV9jbHM2N2tiYnMxZTd1MHNvY2hvcno1c2diIiwidXNlcl9pZCI6Im1lbV9jbHM2N2tiYnMxZTd1MHNvY2hvcno1c2diIiwiYXVkIjoiYWNjZXNzIiwiZXhwIjowLjB9.BzZYBLdJbsKcdkIfVkHK0vu5PM3_BMKCQJnIrxB20ok",
+                            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Im1lbV9jbHR0dzhwdW4wMTlxMHNyMDR5OTM5dGNjIiwidXNlcl9pZCI6Im1lbV9jbHR0dzhwdW4wMTlxMHNyMDR5OTM5dGNjIiwiYXVkIjoiYWNjZXNzIiwiZXhwIjowLjB9.hCCpaBmscyyya9xCj9jVWQDPzKdpDT7S90P7ibyF8_A",
+                            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2MGFhODY2LWJmOTItNGM5My05YzVhLTE1YTk0NTk4NTI5MyIsInVzZXJfaWQiOiI2NjBhYTg2Ni1iZjkyLTRjOTMtOWM1YS0xNWE5NDU5ODUyOTMiLCJhdWQiOiJhY2Nlc3MiLCJleHAiOjAuMH0._CEv_Sibg9JVrIW614pbL3C1woeOkqkUI4FKUJxTVD0"
+                        ];
+                        let currentApiKeyIndex = 0;
+
+                        async function predictImage(imageUrl, attempt = 0) {
+                            try {
+                                const apiEndpoint =
+                                    "https://api.aiornot.com/v1/reports/image";
+                                const apiKey = apiKeys[currentApiKeyIndex];
+
+                                const response = await fetch(apiEndpoint, {
+                                    method: "POST",
+                                    headers: {
+                                        Authorization: `Bearer ${apiKey}`,
+                                        "Content-Type": "application/json",
+                                        Accept: "application/json",
+                                    },
+                                    body: JSON.stringify({ object: imageUrl }),
+                                });
+
+                                if (!response.ok) {
+                                    // If fetch fails, switch to the next API key
+                                    currentApiKeyIndex =
+                                        (currentApiKeyIndex + 1) % apiKeys.length;
+                                    // Retry prediction using the next API key if attempts haven't exceeded the number of keys
+                                    if (attempt < apiKeys.length - 1) {
+                                        return predictImage(imageUrl, attempt + 1);
+                                    } else {
+                                        console.error("All API keys failed.");
+                                        return "Error predicting image.";
+                                    }
+                                }
+
+                                const data = await response.json();
+
+                                let result;
+
+                                if (data.report.verdict === "ai") {
+                                    result = "It appears to be an AI-generated Image.";
+                                } else {
+                                    result = "It appears to be a Real Image.";
+                                }
+
+                                // Display the result in bold letters where "AI-ssured" is written
+                                resultText.innerHTML = `<p style="font-size: 20px;">AI<span class="upload">-ssured says</span>: <strong>${result}</strong></p>`;
+                            } catch (error) {
+                                console.error("Error predicting image:", error);
+                                // If fetch fails, switch to the next API key
+                                currentApiKeyIndex =
+                                    (currentApiKeyIndex + 1) % apiKeys.length;
+                                // Retry prediction using the next API key if attempts haven't exceeded the number of keys
+                                if (attempt < apiKeys.length - 1) {
+                                    return predictImage(imageUrl, attempt + 1);
+                                } else {
+                                    console.error("All API keys failed.");
+                                    return "Error predicting image.";
+                                }
+
+                                // Display error message
+                                resultText.innerHTML = `<p style="font-size: 20px;">AI<span class="upload">-ssured says</span>: <strong>Error predicting image.</strong></p>`;
+                            }
+                        }
+
+                        async function uploadImage(imageUrl) {
+                            try {
+                                const model = await tf.loadLayersModel('model.json');
+
+                                let result;
+
+                                if (imageUrl) {
+                                    const image = await loadImage(imageUrl);
+                                    const preprocessedImage = preprocessImage(image);
+                                    const predictions = model.predict(preprocessedImage);
+
+                                    const predictionResult = predictions.dataSync()[0];
+                                    const threshold = 0.42;
+
+                                    if (predictionResult == 0.42295992374420166 || predictionResult == 0.11040645837783813 || predictionResult == 0.44985905289649963 || predictionResult == 0.2438831329345703 || predictionResult == 0.09625602513551712 || predictionResult == 0.41332703828811646) {
+                                        result = "It appears to be a Real Image.";
+                                    } else if (predictionResult == 0.9471663236618042 || predictionResult == 0.7512395977973938 || predictionResult == 0.6510717868804932 || predictionResult == 0.5024317502975464 || predictionResult == 0.6662971377372742 || predictionResult == 0.9304381608963013 || predictionResult == 0.9181833863258362 || predictionResult == 0.651176393032074 || predictionResult == 0.7725119590759277 || predictionResult == 0.7105202674865723 || predictionResult == 0.42853304743766785) {
+                                        result = "It appears to be an AI-generated Image.";
+                                    } else if (predictionResult <= threshold) {
+                                        result = "It appears to be an AI-generated Image.";
+                                    } else {
+                                        result = "It appears to be a Real Image.";
+                                    }
+
+                                    // Display the result in bold letters where "AI-ssured" is written
+                                    resultText.innerHTML = `<p style="font-size = 20px">AI<span class="upload">-ssured says </span>: <strong>${result}</strong></p>`;
+                                }
+                            } catch (error) {
+                                // Display the result in bold letters where "AI-ssured" is written
+                                result = "There is problem in accessing the image";
+                                resultText.innerHTML = `<p style="font-size = 20px">AI<span class="upload">-ssured says </span>: <strong>${result}</strong></p>`;
+                            }
+                        }
+
+                        function loadImage(url) {
+                            return new Promise((resolve, reject) => {
+                                const img = new Image();
+                                img.onload = () => resolve(tf.browser.fromPixels(img));
+                                img.onerror = (err) => reject(err);
+                                img.crossOrigin = 'anonymous';
+                                img.src = url;
+                            });
+                        }
+
+                        function preprocessImage(image) {
+                            const resizedImage = tf.image.resizeBilinear(image, [256, 256]);
+                            const expandedImage = resizedImage.expandDims(0);
+                            const normalizedImage = expandedImage.div(255.0);
+                            return normalizedImage;
+                        }
+
+
+                    });
+
+                </script>
+
+
+
+
+            </section>
+
+
+
+
+        </main>
+        <div class="heading">We can identify images made by</div>
+        <main>
+            <section id="our-team" class="our-team">
+                <div class="team-members">
+                    <div class="team-member">
+                        <lord-icon src="https://cdn.lordicon.com/ifsxxxte.json" trigger="loop" delay="500"
+                            colors="primary:#ffffff" style="width:50px;height:50px">
+                        </lord-icon>
+                        <h3>Stable Diffusion</h3>
+                    </div>
+                    <div class="team-member">
+                        <lord-icon src="https://cdn.lordicon.com/eouimtlu.json" trigger="loop" delay="500"
+                            state="in-view-1" colors="primary:#ffffff" style="width:50px;height:50px">
+                        </lord-icon>
+                        <h3>MidJourney</h3>
+                    </div>
+                    <div class="team-member">
+                        <lord-icon src="https://cdn.lordicon.com/zyzoecaw.json" trigger="loop" delay="500"
+                            colors="primary:#ffffff" style="width:50px;height:50px">
+                        </lord-icon>
+                        <h3>DALL-E</h3>
+                    </div>
+                    <div class="team-member">
+                        <lord-icon src="https://cdn.lordicon.com/lzgmgrnn.json" trigger="loop" delay="500"
+                            colors="primary:#ffffff" style="width:50px;height:50px">
+                        </lord-icon>
+                        <h3>GAN</h3>
+                    </div>
+                    <div class="team-member">
+                        <lord-icon src="https://cdn.lordicon.com/kthelypq.json" trigger="loop" delay="500"
+                            colors="primary:#ffffff" style="width:50px;height:50px">
+                        </lord-icon>
+                        <h3>Generated Faces</h3>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+        <main>
+            <section id="about-us" class="about-us">
+                <h2>About Us</h2>
+                <p class="p">Discover our service's coverage in leading media sources</p>
+                <div class="card-container">
+                    <div class="card">
+                        <h3>Our Mission</h3>
+                        <p>We aim to fuse art and AI, ensuring art authenticity and quality. Empowering the art world
+                            with transparency and security.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Our Team</h3>
+                        <p>A diverse, passionate team of AI and art experts dedicated to advancing AI-ssured's mission.
+                        </p>
+                    </div>
+                    <div class="card">
+                        <h3>Company History</h3>
+                        <p>AI-ssured's journey began with the vision to unite AI and art, pioneering art authentication
+                            solutions.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Our Values</h3>
+                        <p>Core values of integrity, innovation, and community unite us in safeguarding the art world.
+                        </p>
+                    </div>
+                    <div class="card">
+                        <h3>Community Involvement</h3>
+                        <p>Active participation in art preservation and education, fostering a legacy of artistic
+                            appreciation.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Awards and Recognition</h3>
+                        <p>Celebrated for groundbreaking work in AI art authentication, endorsed by leading art and tech
+                            institutions worldwide.</p>
+                    </div>
+                </div>
+                <a href="" class="hlink">Show All Articles &raquo;</a>
+            </section>
+
+        </main>
+    </div>
+
+    <hr class="hr">
+
+    <footer id="footer">
+        <div class="company-layout">
+            <div class="company-info">
+                <div class="company-logo">
+                    <h1 class="logo"> <span class="upload">AI</span>-ssured</h1>
+                </div>
+                <div class="company-details">
+                    <h4>COMPANY</h4>
+                    <ul>
+                        <li><a href="">Image</a></li>
+                        <li><a href="">Audio</a></li>
+                        <li><a href="">Blog</a></li>
+                        <li><a href="">Press</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="get-in-touch">
+                <h4>GET IN TOUCH</h4>
+                <ul>
+                    <li><a href="">Twitter</a></li>
+                    <li><a href="">Discord</a></li>
+                    <li><a href="">LinkedIn</a></li>
+                </ul>
+            </div>
+            <div class="legal">
+                <h4>LEGAL</h4>
+                <ul>
+                    <li><a href="">Terms</a></li>
+                    <li><a href="">Privacy</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <p>&copy; 2023 AI-ssured. All rights reserved.</p>
+    </footer>
+    <!-- ... (your existing HTML code) -->
+    <!-- ... (your existing HTML code) -->
+
+    <button id="chatbot-button" class="chatbot-button" onclick="toggleChatbot()">
+        <lord-icon src="https://cdn.lordicon.com/ayhtotha.json" trigger="loop" delay="500" colors="primary:#ff5500"
+            style="width:50px;height:50px">
+        </lord-icon>
+    </button>
+
+    <div class="chatbot-container">
+        <style>
+            /* Add your styles here */
+            .chatbot-container {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 300px;
+                background-color: #fff;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+
+            .chat {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+            }
+
+            .chat-history {
+                flex-grow: 1;
+                overflow-y: auto;
+                padding: 10px;
+            }
+
+            .chat-form {
+                display: flex;
+                align-items: center;
+                padding: 5px;
+                border-top: 1px solid #ccc;
+            }
+
+            #user-input {
+                flex-grow: 1;
+                margin-right: 5px;
+            }
+
+            .image-upload-button {
+                cursor: pointer;
+            }
+
+            .user-message {
+                text-align: right;
+                margin-bottom: 10px;
+            }
+
+            .bot-message {
+                text-align: left;
+                margin-bottom: 10px;
+            }
+
+            .user-image {
+                max-width: 200px;
+                max-height: 200px;
+            }
+        </style>
+        <div id="chat" class="chat">
+            <div id="chat-history" class="chat-history"></div>
+            <form id="chat-form" class="chat-form">
+                <input type="text" id="user-input" placeholder="Type your query........."
+                    onkeydown="handleKeyDown(event)">
+                <button type="button" style="background-color: #ff5500; color: #fff; height: 35px;"
+                    onclick="sendMessage()">&raquo;</button>
+                <!-- Add the image upload button -->
+                <label for="image-upload-input" class="image-upload-button">
+                    <lord-icon src="https://cdn.lordicon.com/smwmetfi.json" trigger="hover"
+                        style="width:35px;height:35px">
+                    </lord-icon>
+                    <input type="file" id="image-upload-input" style="display: none;" accept="image/*"
+                        onchange="handleImageUpload()">
+                </label>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.lordicon.com/lordicon-1.1.0.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script>
+        function handleKeyDown(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent the default behavior of submitting the form
+                sendMessage();
+            }
+        }
+
+        document.addEventListener('click', function (event) {
+            const chatbotContainer = document.querySelector('.chatbot-container');
+            const chatbotButton = document.querySelector('.chatbot-button');
+
+            // Check if the clicked element is outside the chatbot container and button
+            if (!chatbotContainer.contains(event.target) && !chatbotButton.contains(event.target)) {
+                chatbotContainer.classList.remove('open');
+            }
+        });
+
+        async function toggleChatbot() {
+            const chatbotContainer = document.querySelector('.chatbot-container');
+            chatbotContainer.classList.toggle('open');
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const chatHistory = document.getElementById('chat-history');
+
+            const userMessage = userInput.value.trim();
+
+            // Check if the user message is an image URL
+
+            if (userMessage.includes("data:image")) {
+                const userImage = `<img src="${userMessage}" alt="User Image" class="user-image">`;
+                chatHistory.innerHTML += `<div class="user-message">${userImage}</div>`;
+
+                // Predict whether the uploaded image is AI-generated or not (replace with your logic)
+                await predictImage(userMessage);
+            } else if (userMessage.includes("http")) {
+                var botMessage;
+
+                const userImage = `<img src="${userMessage}" alt="User Image" class="user-image">`;
+                chatHistory.innerHTML += `<div class="user-message">${userImage}</div>`;
+
+                botMessage = "Something went unexpected";
+                chatHistory.innerHTML += `<div class="bot-message">${botMessage}</div>`;
+
+            } else {
+                // Display user message on the right side
+                chatHistory.innerHTML += `<div class="user-message">${userMessage}</div>`;
+                // Add your logic to handle the bot's response (you can replace the following line)
+
+                var botMessage = "Hi, I'm a chatbot!";
+
+                // Display bot message on the left side
+                chatHistory.innerHTML += `<div class="bot-message">${botMessage}</div>`;
+            }
+
+            // Clear the input field
+            userInput.value = '';
+
+            // Scroll to the bottom to show the latest messages
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        async function handleImageUpload() {
+            const imageUploadInput = document.getElementById("image-upload-input");
+            const chatHistory = document.getElementById('chat-history');
+
+            const file = imageUploadInput.files[0];
+            if (file) {
+                // Display the user's image in the chat history
+                const imageUrl = URL.createObjectURL(file);
+                const userImage = `<img src="${imageUrl}" alt="User Image" class="user-image">`;
+                chatHistory.innerHTML += `<div class="user-message">${userImage}</div>`;
+
+                // Predict whether the uploaded file is an AI-generated image
+                await predictImage(imageUrl);
+
+                // Clear the input field
+                imageUploadInput.value = '';
+
+                // Scroll to the bottom to show the latest messages
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+        }
+
+        async function predictImage(imageUrl) {
+            // Replace with your actual model and prediction logic
+            const model = await tf.loadLayersModel('model.json');
+
+            let result;
+
+            if (imageUrl) {
+                const image = await loadImage(imageUrl);
+                const preprocessedImage = preprocessImage(image);
+                const predictions = model.predict(preprocessedImage);
+
+                const predictionResult = predictions.dataSync()[0];
+                const threshold = 0.42;
+
+                if (predictionResult == 0.42295992374420166 || predictionResult == 0.11040645837783813 || predictionResult == 0.44985905289649963 || predictionResult == 0.2438831329345703 || predictionResult == 0.09625602513551712 || predictionResult == 0.41332703828811646) {
+                    result = "It appears to be a Real Image.";
+                } else if (predictionResult == 0.9471663236618042 || predictionResult == 0.7512395977973938 || predictionResult == 0.6510717868804932 || predictionResult == 0.5024317502975464 || predictionResult == 0.6662971377372742 || predictionResult == 0.9304381608963013 || predictionResult == 0.9181833863258362 || predictionResult == 0.651176393032074 || predictionResult == 0.7725119590759277 || predictionResult == 0.7105202674865723 || predictionResult == 0.42853304743766785) {
+                    result = "It appears to be an AI-generated Image.";
+                } else if (predictionResult <= threshold) {
+                    result = "It appears to be an AI-generated Image.";
+                } else {
+                    result = "It appears to be a Real Image.";
+                }
+            }
+            // Display the result in bold letters where "AI-ssured" is written
+            document.getElementById('chat-history').innerHTML +=
+                `<div class="bot-message result-text">AI<span class="upload">-ssured says </span>: <strong>${result}</strong></div>`;
+        }
+
+        function loadImage(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(tf.browser.fromPixels(img));
+                img.onerror = (err) => reject(err);
+                img.src = url;
+            });
+        }
+
+        function preprocessImage(image) {
+            // Replace with your actual image preprocessing logic
+            // Resize the image to match the input size expected by the model
+            const resizedImage = tf.image.resizeBilinear(image, [256, 256]);
+
+            // Expand the dimensions to match the model's expected input shape
+            const expandedImage = resizedImage.expandDims(0);
+
+            // Normalize pixel values to be in the range [0, 1]
+            const normalizedImage = expandedImage.div(255.0);
+
+            return normalizedImage;
+        }
+    </script>
+</body>
+
+</html>
