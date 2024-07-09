@@ -1,5 +1,5 @@
 const apiKeys = [
-    //apikeys from aiornot.com
+    //api keys from aiornot.com
 ];
 
 let currentApiKeyIndex = 0;
